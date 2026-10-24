@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>เกมจับคู่การประเมินทางการพยาบาล</title>
+<style>
+:root{--ink:#243247;--muted:#65748b;--blue:#2563eb;--line:#cbd5e1;--green:#15803d;--red:#b91c1c;--gold:#a16207}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Tahoma,sans-serif;color:var(--ink);background:linear-gradient(180deg,#eff6ff 0,#f8fafc 280px,#f8fafc 100%);min-height:100vh}
+main{width:min(100%,1100px);margin:0 auto;padding:22px 14px 40px}
+header{text-align:center;margin-bottom:18px}
+.kicker{font-size:.86rem;color:var(--blue);font-weight:750}
+h1{font-size:clamp(1.35rem,4vw,2rem);margin:7px 0}
+.subtitle{color:var(--muted);margin:0 auto;max-width:760px;line-height:1.55}
+.game-nav{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin:18px 0}
+.nav-btn,.btn{border:0;border-radius:999px;padding:10px 15px;font:inherit;font-weight:700;cursor:pointer;transition:.15s}
+.nav-btn{background:#e2e8f0;color:#334155}
+.nav-btn.active{background:#2563eb;color:white;box-shadow:0 4px 12px #2563eb30}
+.nav-btn:hover,.btn:hover{filter:brightness(.97);transform:translateY(-1px)}
+.panel{background:#fff;border:1px solid #e2e8f0;border-radius:20px;padding:clamp(12px,2.7vw,24px);box-shadow:0 10px 30px #0f172a0a}
+.topline{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.progress,.pill{font-weight:700;color:var(--muted);font-size:.9rem}
+.pill{background:#eff6ff;color:#2563eb;border-radius:999px;padding:7px 12px}
+.instructions{margin:0 0 16px;color:#475569;line-height:1.55}
+.match-area{position:relative;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:clamp(24px,33.333%,180px);isolation:isolate}
+.column{display:flex;flex-direction:column;gap:6px;min-width:0}
+.column h2{font-size:.95rem;margin:0 0 3px;color:#475569}
+.match-card{position:relative;z-index:2;display:flex;align-items:center;min-height:43px;width:100%;border:2px solid var(--card-border,#cbd5e1);border-radius:15px;background:var(--card-bg,#fff);padding:7px 9px;text-align:left;font:inherit;font-weight:650;line-height:1.4;color:var(--card-ink,var(--ink));cursor:pointer;transition:border-color .15s,background .15s,transform .15s;touch-action:manipulation;overflow-wrap:anywhere}
+.match-card:hover{filter:brightness(.985)}
+.match-card:focus-visible,button:focus-visible{outline:3px solid #93c5fd;outline-offset:3px}
+.left .match-card{justify-content:flex-end;text-align:right}
+.right .match-card{justify-content:flex-start;text-align:left}
+.match-card .label{min-width:0}
+.match-card .dot{flex:0 0 14px;width:14px;height:14px;border:2px solid #7894b6;border-radius:50%;background:#fff;margin:0}
+.left .match-card .dot{margin-left:10px}
+.right .match-card .dot{margin-right:10px}
+.match-card.selected{box-shadow:0 0 0 2px #bfdbfe;filter:saturate(1.15)}
+.match-card.correct{outline:2px solid #16a34a;outline-offset:1px}
+.match-card.wrong{outline:2px solid #ef4444;outline-offset:1px}
+.match-card.hint{outline:2px solid #eab308;outline-offset:1px}
+#lines{position:absolute;inset:0;width:100%;height:100%;z-index:1;pointer-events:none;overflow:visible}
+.line{fill:none;stroke-width:3.5;stroke-linecap:round;opacity:.95}
+.actions{display:flex;gap:9px;flex-wrap:wrap;justify-content:center;margin-top:20px}
+.btn.primary{background:#2563eb;color:#fff}.btn.secondary{background:#e2e8f0;color:#334155}.btn.hint-btn{background:#fef3c7;color:#92400e}.btn.success{background:#15803d;color:#fff}
+.feedback{min-height:28px;margin:14px 0 0;text-align:center;font-weight:700;line-height:1.55}
+.feedback.error{color:#b91c1c}.feedback.good{color:#15803d}.feedback.info{color:#a16207}
+.finish{display:none;margin-top:16px;text-align:center;padding:17px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:16px}
+.finish.show{display:block}
+.finish p{margin:0 0 12px;font-weight:750;color:#166534}
+.subnav[hidden]{display:none!important}
+.subnav{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:0 0 16px}
+.subnav button{border:1px solid #cbd5e1;border-radius:999px;background:#fff;padding:8px 13px;font:inherit;font-weight:700;cursor:pointer;color:#475569}
+.subnav button.active{background:#dbeafe;border-color:#60a5fa;color:#1d4ed8}
+@media(max-width:650px){
+ main{padding:14px 8px 28px}
+ .panel{padding:12px 8px}
+ .match-area{column-gap:clamp(18px,8vw,34px)}
+ .match-card{min-height:45px;padding:6px 5px;font-size:.88rem;border-radius:12px}
+ .match-card .dot{width:12px;height:12px;flex-basis:12px}
+ .left .match-card .dot{margin-left:5px}.right .match-card .dot{margin-right:5px}
+ .column{gap:5px}.column h2{font-size:.82rem}
+ .btn,.nav-btn{padding:9px 12px;font-size:.9rem}
+}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<main>
+<header>
+<div class="kicker">NURSING SKILLS • MATCHING GAME</div>
+<h1>เกมจับคู่การประเมินทางการพยาบาล</h1>
+<p class="subtitle">เลือกกล่องฝั่งซ้าย แล้วเลือกคำตอบฝั่งขวาที่สัมพันธ์กัน จากนั้นกด “ส่งคำตอบ”</p>
+</header>
+<nav class="game-nav" aria-label="เลือกเกม">
+<button class="nav-btn active" data-game="0">เกมที่ 1 · Level of Consciousness</button>
+<button class="nav-btn" data-game="1">เกมที่ 2 · Muscle Power</button>
+<button class="nav-btn" data-game="2">เกมที่ 3 · Glasgow Coma Scale (GCS)</button>
+</nav>
+<section class="panel">
+<div class="topline"><span class="progress" id="progress">เกมที่ 1 จาก 3</span><span class="pill" id="pill">Level of Consciousness</span></div>
+<div class="subnav" id="subnav" hidden>
+<button class="active" data-sub="0">การลืมตา (Eye opening)</button>
+<button data-sub="1">การส่งเสียงพูด (Verbal response)</button>
+<button data-sub="2">การเคลื่อนไหว (Motor response)</button>
+</div>
+<p class="instructions" id="instructions">จับคู่ระดับความรู้สึกตัวกับความหมายภาษาไทยให้ถูกต้อง</p>
+<div class="match-area" id="matchArea">
+<svg id="lines" aria-hidden="true"></svg>
+<div class="column left" id="leftCol"><h2 id="leftHeading">หัวข้อ</h2><div id="leftCards"></div></div>
+<div class="column right" id="rightCol"><h2 id="rightHeading">ความหมาย</h2><div id="rightCards"></div></div>
+</div>
+<div class="actions">
+<button class="btn primary" id="submitBtn">ส่งคำตอบ</button>
+<button class="btn hint-btn" id="hintBtn">ขอคำใบ้</button>
+<button class="btn secondary" id="resetBtn">เริ่มจับคู่ใหม่</button>
+</div>
+<div class="feedback" id="feedback" role="status" aria-live="polite"></div>
+<div class="finish" id="finish">
+<p id="finishText">เก่งมากค่ะ จับคู่ถูกต้องครบทุกคู่แล้ว!</p>
+<button class="btn success" id="nextBtn">กดเพื่อเล่นเกมถัดไป</button>
+</div>
+</section>
+</main>
+<script>
+const colors=[
+ {line:'#f97316',bg:'#ffedd5',border:'#fdba74',ink:'#9a3412'},
+ {line:'#2563eb',bg:'#dbeafe',border:'#60a5fa',ink:'#1d4ed8'},
+ {line:'#0f766e',bg:'#ccfbf1',border:'#5eead4',ink:'#115e59'},
+ {line:'#ec4899',bg:'#fce7f3',border:'#f9a8d4',ink:'#9d174d'},
+ {line:'#7c3aed',bg:'#ede9fe',border:'#c4b5fd',ink:'#5b21b6'},
+ {line:'#0891b2',bg:'#cffafe',border:'#67e8f9',ink:'#155e75'}
+];
+const games=[
+ {title:'Level of Consciousness',instruction:'จับคู่ระดับความรู้สึกตัวกับความหมายภาษาไทยให้ถูกต้อง',leftHeading:'หัวข้อ',rightHeading:'ความหมาย',fixed:false,items:[
+  ['Alert','ตื่นรู้สึกตัวดี'],['Drowsy','ง่วงซึม'],['Lethargy','ซึม'],['Stupor','ซึมมาก ปลุกตื่นยาก'],['Coma','ไม่รู้สึกตัว']]},
+ {title:'Muscle Power',instruction:'จับคู่ Grade ของกำลังกล้ามเนื้อกับความสามารถที่สังเกตได้',leftHeading:'Grade',rightHeading:'ความสามารถ',fixed:true,items:[
+  ['Grade 0','ไม่สามารถเคลื่อนไหวได้เลย'],
+  ['Grade 1','สามารถสังเกตการเคลื่อนไหวได้เล็กน้อยจากการมอง พบการหดตัวของกล้ามเนื้อ'],
+  ['Grade 2','สามารถเคลื่อนไหวตามแนวราบได้ แต่ต้านแรงโน้มถ่วงไม่ได้'],
+  ['Grade 3','สามารถเคลื่อนไหวต้านแรงโน้มถ่วงได้ แต่ต้านแรงผู้ตรวจไม่ได้'],
+  ['Grade 4','สามารถเคลื่อนไหวต้านแรงผู้ตรวจได้ แต่ไม่เต็มที่'],
+  ['Grade 5','สามารถเคลื่อนไหวต้านแรงผู้ตรวจได้เต็มที่เป็นปกติ']]},
+ {title:'Glasgow Coma Scale (GCS)',instruction:'จับคู่คะแนนทางฝั่งซ้ายกับการตอบสนองที่ถูกต้องทางฝั่งขวา',subgames:[
+  {name:'การลืมตา (Eye opening)',leftHeading:'คะแนน',rightHeading:'การตอบสนอง',items:[
+   ['4 คะแนน','ลืมตาได้เอง'],['3 คะแนน','ลืมตาตอบสนองเมื่อผู้ตรวจสั่ง'],['2 คะแนน','ลืมตาตอบสนองเมื่อกระตุ้นให้รู้สึกเจ็บปวด'],['1 คะแนน','ไม่ลืมตาตอบสนองต่อการกระตุ้นด้วยวิธีต่าง ๆ']]},
+  {name:'การส่งเสียงพูด (Verbal response)',leftHeading:'คะแนน',rightHeading:'การตอบสนอง',items:[
+   ['5 คะแนน','พูดสื่อสารได้ถูกต้องทั้งบุคคล เวลา และสถานที่'],['4 คะแนน','พูดสับสน ไม่สามารถตอบคำถามได้ถูกต้อง'],['3 คะแนน','เปล่งเสียงพูดเป็นคำ แต่ไม่ถูกต้องหรือไม่เหมาะสม'],['2 คะแนน','เปล่งเสียงร้องที่ไม่มีความหมาย'],['1 คะแนน','ไม่สามารถส่งเสียงหรือตอบสนองต่อสิ่งกระตุ้นด้วยวิธีต่าง ๆ']]},
+  {name:'การเคลื่อนไหว (Motor response)',leftHeading:'คะแนน',rightHeading:'การตอบสนอง',items:[
+   ['6 คะแนน','เคลื่อนไหวตามคำสั่งได้ถูกต้อง'],['5 คะแนน','เคลื่อนไหวเมื่อเจ็บและทราบตำแหน่งที่เจ็บ'],['4 คะแนน','เคลื่อนไหวโดยชักแขนขาหนีเมื่อเจ็บ แต่ไม่ทราบตำแหน่งที่เจ็บ'],['3 คะแนน','แขนงอเข้าหาลำตัว ขาเหยียดเกร็ง (Decorticate)'],['2 คะแนน','แขนและขาเหยียดเกร็ง (Decerebrate)'],['1 คะแนน','ไม่มีการเคลื่อนไหว']]}
+ ]}
+];
+let gameIndex=0,subIndex=0,leftOrder=[],rightOrder=[],pairs={},selectedLeft=null,results={},hintTimer=null;
+const $=id=>document.getElementById(id);
+const leftCards=$('leftCards'),rightCards=$('rightCards'),area=$('matchArea');
+function current(){
+ const g=games[gameIndex];
+ if(gameIndex===2){const s=g.subgames[subIndex];return {...s,title:g.title,instruction:g.instruction,items:s.items,fixed:true};}
+ return g;
+}
+function shuffle(a){const out=[...a];for(let i=out.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[out[i],out[j]]=[out[j],out[i]];}return out;}
+function clearState(){pairs={};selectedLeft=null;results={};$('feedback').textContent='';$('feedback').className='feedback';$('finish').classList.remove('show');}
+function makeCard(item,side,index,displayText,canonicalId){
+ const b=document.createElement('button');b.type='button';b.className='match-card';b.dataset.id=canonicalId;b.dataset.side=side;b.dataset.index=index;
+ const label=document.createElement('span');label.className='label';label.textContent=displayText;
+ const dot=document.createElement('span');dot.className='dot';dot.setAttribute('aria-hidden','true');
+ if(side==='left'){b.append(label,dot);}else{b.append(dot,label);}
+ b.addEventListener('click',()=>onCardClick(side,canonicalId));
+ return b;
+}
+function render(){
+ clearTimeout(hintTimer);clearState();
+ const g=current();$('pill').textContent=g.title;$('instructions').textContent=g.instruction;
+ $('leftHeading').textContent=g.leftHeading;$('rightHeading').textContent=g.rightHeading;
+ $('progress').textContent=`เกมที่ ${gameIndex+1} จาก 3`+(gameIndex===2?` · ชุดที่ ${subIndex+1} จาก 3`:'');
+ $('subnav').hidden=gameIndex!==2;
+ document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active',Number(b.dataset.game)===gameIndex));
+ document.querySelectorAll('#subnav button').forEach(b=>b.classList.toggle('active',Number(b.dataset.sub)===subIndex));
+ let items=g.items;
+ const reverseColumns = gameIndex===1 || gameIndex===2;
+ if(reverseColumns){
+  // Grade/score remain fixed on the right; descriptions/responses are shuffled on the left.
+  leftOrder=shuffle(items);
+  rightOrder=[...items];
+  leftCards.replaceChildren();rightCards.replaceChildren();
+  leftOrder.forEach((item,i)=>leftCards.append(makeCard(item,'left',i,item[1],item[0])));
+  rightOrder.forEach((item,i)=>rightCards.append(makeCard(item,'right',i,item[0],item[0])));
+  $('leftHeading').textContent=g.rightHeading;
+  $('rightHeading').textContent=g.leftHeading;
+ }else{
+  leftOrder=shuffle(items);
+  rightOrder=shuffle(items);
+  leftCards.replaceChildren();rightCards.replaceChildren();
+  leftOrder.forEach((item,i)=>leftCards.append(makeCard(item,'left',i,item[0],item[0])));
+  rightOrder.forEach((item,i)=>rightCards.append(makeCard(item,'right',i,item[1],item[0])));
+  $('leftHeading').textContent=g.leftHeading;
+  $('rightHeading').textContent=g.rightHeading;
+ }
+ drawLines();applyColors();
+}
+function onCardClick(side,id){
+ if($('finish').classList.contains('show'))return;
+ const reverseColumns = gameIndex===1 || gameIndex===2;
+ if(side==='left'){
+  selectedLeft=id;
+  document.querySelectorAll('.left .match-card').forEach(c=>c.classList.toggle('selected',c.dataset.id===id));
+  $('feedback').textContent='';$('feedback').className='feedback';
+ }else if(selectedLeft!==null){
+  // In reversed-column games, left card is the description but each card keeps its canonical pair id.
+  const leftId=selectedLeft;
+  const rightId=id;
+  for(const [l,r] of Object.entries(pairs)){if(r===rightId)delete pairs[l];}
+  pairs[leftId]=rightId;selectedLeft=null;
+  document.querySelectorAll('.match-card').forEach(c=>c.classList.remove('selected','correct','wrong'));
+  $('feedback').textContent='';$('feedback').className='feedback';drawLines();applyColors();
+ }else if(pairs[id]!==undefined){delete pairs[id];drawLines();applyColors();}
+}
+function cardBy(side,id){return document.querySelector(`.${side} .match-card[data-id="${CSS.escape(id)}"]`);}
+function applyColors(){
+ const g=current();
+ document.querySelectorAll('.match-card').forEach(c=>{
+  c.classList.remove('paired');
+  if(c.dataset.side==='left'){
+   const i=g.items.findIndex(x=>x[0]===c.dataset.id),co=colors[(i+colors.length)%colors.length];
+   c.style.setProperty('--card-bg',co.bg);c.style.setProperty('--card-border',co.border);c.style.setProperty('--card-ink',co.ink);
+  }else{
+   const left=Object.keys(pairs).find(k=>pairs[k]===c.dataset.id);
+   if(left!==undefined){const i=g.items.findIndex(x=>x[0]===left),co=colors[(i+colors.length)%colors.length];c.style.setProperty('--card-bg',co.bg);c.style.setProperty('--card-border',co.border);c.style.setProperty('--card-ink',co.ink);c.classList.add('paired');}
+   else{c.style.setProperty('--card-bg','#fff');c.style.setProperty('--card-border','#cbd5e1');c.style.setProperty('--card-ink','#243247');}
+  }
+ });
+}
+function drawLines(){
+ const svg=$('lines'),rect=area.getBoundingClientRect();svg.setAttribute('viewBox',`0 0 ${rect.width} ${rect.height}`);svg.replaceChildren();
+ for(const [leftId,rightId] of Object.entries(pairs)){
+  const l=cardBy('left',leftId),r=cardBy('right',rightId);if(!l||!r)continue;
+  const a=l.getBoundingClientRect(),b=r.getBoundingClientRect();
+  const x1=a.right-rect.left,y1=a.top+a.height/2-rect.top,x2=b.left-rect.left,y2=b.top+b.height/2-rect.top,dx=Math.max(20,(x2-x1)*.48);
+  const path=document.createElementNS('http://www.w3.org/2000/svg','path');
+  path.setAttribute('d',`M ${x1} ${y1} C ${x1+dx} ${y1}, ${x2-dx} ${y2}, ${x2} ${y2}`);
+  const i=current().items.findIndex(x=>x[0]===leftId);path.setAttribute('stroke',colors[(i+colors.length)%colors.length].line);path.setAttribute('class','line');svg.append(path);
+ }
+}
+function check(){
+ const g=current(),n=g.items.length,reverseColumns=gameIndex===1||gameIndex===2;
+ const correct=g.items.filter(x=>pairs[x[0]]===x[0]).length;
+ document.querySelectorAll('.match-card').forEach(c=>c.classList.remove('correct','wrong'));
+ if(correct===n&&Object.keys(pairs).length===n){
+  g.items.forEach(x=>{cardBy('left',x[0])?.classList.add('correct');cardBy('right',x[0])?.classList.add('correct');});
+  $('feedback').textContent='ถูกต้องครบทุกคู่ค่ะ';$('feedback').className='feedback good';
+  $('finishText').textContent=gameIndex===2&&subIndex<2?'เก่งมากค่ะ จับคู่ถูกต้องครบทุกคู่แล้ว! ไปชุดถัดไปได้เลยค่ะ':'เก่งมากค่ะ จับคู่ถูกต้องครบทุกคู่แล้ว!';
+  $('nextBtn').textContent=gameIndex===2&&subIndex<2?'กดเพื่อเล่นชุดถัดไป':'กดเพื่อเล่นเกมถัดไป';
+  $('nextBtn').style.display='';
+  $('finish').classList.add('show');
+ }else{
+  g.items.forEach(x=>{if(pairs[x[0]]===x[0]){cardBy('left',x[0])?.classList.add('correct');cardBy('right',x[0])?.classList.add('correct');}});
+  $('feedback').textContent=`ยังไม่ถูกค่ะ ตอนนี้ตอบถูกแล้ว ${correct} จาก ${n} คู่ ค่ะ ลองใหม่อีกครั้งนะคะ`;
+  $('feedback').className='feedback error';
+  drawLines();applyColors();
+ }
+}
+function showHint(){
+ clearTimeout(hintTimer);
+ const g=current(),oldPairs={...pairs};
+ const oldFeedback=$('feedback').textContent,oldFeedbackClass=$('feedback').className;
+ pairs={};g.items.forEach(x=>pairs[x[0]]=x[0]);
+ drawLines();applyColors();
+ document.querySelectorAll('.match-card').forEach(c=>c.classList.remove('hint','correct','wrong'));
+ // Explicitly paint correct pairings so the one-second hint is visible even if the normal color style is inline.
+ for(const item of g.items){
+  const leftCard=cardBy('left',item[0]),rightCard=cardBy('right',item[0]);
+  if(leftCard)leftCard.classList.add('hint');
+  if(rightCard)rightCard.classList.add('hint');
+ }
+ // Hint lines retain each left card's own color, matching its border and label.
+ document.querySelectorAll('#lines .line').forEach((p,i)=>{
+  const leftId=Object.keys(pairs)[i];
+  const itemIndex=g.items.findIndex(x=>x[0]===leftId);
+  p.setAttribute('stroke',colors[(itemIndex+colors.length)%colors.length].line);
+ });
+ $('feedback').textContent='คำใบ้: แสดงคู่คำตอบที่ถูกต้องด้วยเส้นสีเดียวกับกรอบข้อความ';$('feedback').className='feedback info';
+ hintTimer=setTimeout(()=>{
+  pairs=oldPairs;
+  document.querySelectorAll('.match-card').forEach(c=>c.classList.remove('hint'));
+  $('feedback').textContent=oldFeedback;$('feedback').className=oldFeedbackClass;
+  drawLines();applyColors();
+ },1000);
+}
+function reset(){render();}
+function next(){
+ if(gameIndex===2&&subIndex<2){subIndex++;render();return;}
+ if(gameIndex<2){gameIndex++;subIndex=0;render();return;}
+ gameIndex=0;subIndex=0;render();
+}
+document.querySelectorAll('.nav-btn').forEach(b=>b.addEventListener('click',()=>{gameIndex=Number(b.dataset.game);subIndex=0;render();}));
+document.querySelectorAll('#subnav button').forEach(b=>b.addEventListener('click',()=>{subIndex=Number(b.dataset.sub);render();}));
+$('submitBtn').addEventListener('click',check);$('hintBtn').addEventListener('click',showHint);$('resetBtn').addEventListener('click',reset);$('nextBtn').addEventListener('click',next);
+window.addEventListener('resize',drawLines);
+if('ResizeObserver'in window)new ResizeObserver(drawLines).observe(area);
+render();
+</script>
+</body>
+</html>
