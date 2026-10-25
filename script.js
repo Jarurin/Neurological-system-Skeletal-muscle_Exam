@@ -1,6 +1,10 @@
-// script.js
-// บันทึกสถิติเฉพาะเมื่อผู้เล่นกด "ส่งคำตอบ" และแยกตามเกม
-// ใช้ Google Apps Script Web App และ Google Sheets เดิม
+
+"use strict";
+
+// ========================================
+// Google Apps Script: บันทึกสถิติเกม
+// ใช้ URL เดิม ไม่เปลี่ยน Code.gs
+// ========================================
 
 const STATS_URL =
   "https://script.google.com/macros/s/AKfycbyB4Ydw1c16MFGyTBcKXJti64OyyDf13Ma24Q7ywvkgwNChCHhEubCdkNKUuUilJRuZMw/exec";
@@ -17,29 +21,84 @@ const GCS_SUBGAME_NAMES = [
   "Motor response"
 ];
 
+// ป้องกันการเรียกส่งข้อมูลซ้อนในช่วงเวลาสั้น ๆ
+let statsRequestInProgress = false;
+
 /**
- * เรียกเฉพาะจาก check() ซึ่งทำงานเมื่อกดปุ่ม "ส่งคำตอบ"
- * ทุกครั้งที่กดส่งคำตอบ จะบันทึก 1 เหตุการณ์ในชีต Events
- * correct = จำนวนคู่ที่ถูกในรอบส่งคำตอบนี้
- * incorrect = จำนวนคู่ที่ยังไม่ถูกในรอบส่งคำตอบนี้
+ * เรียกจาก check() เมื่อผู้เล่นกด "ส่งคำตอบ"
+ *
+ * gameIndex: 0 = Level of Consciousness
+ *            1 = Muscle Power
+ *            2 = Glasgow Coma Scale
+ *
+ * subIndex:  0 = Eye opening
+ *            1 = Verbal response
+ *            2 = Motor response
+ *
+ * correctCount: จำนวนคู่ที่ตอบถูก
+ * totalCount:   จำนวนคู่ทั้งหมดในชุดนั้น
  */
-function recordGameSubmission(gameIndex, subIndex, correctCount, totalCount) {
-  if (!Number.isInteger(gameIndex) || !GAME_NAMES[gameIndex]) {
-    console.warn("ไม่พบเกมสำหรับบันทึกสถิติ:", gameIndex);
+function recordGameSubmission(
+  gameIndex,
+  subIndex,
+  correctCount,
+  totalCount
+) {
+  // ตรวจสอบข้อมูลก่อนส่ง
+  if (
+    !Number.isInteger(gameIndex) ||
+    gameIndex < 0 ||
+    gameIndex >= GAME_NAMES.length
+  ) {
+    console.error("ไม่สามารถบันทึกสถิติ: gameIndex ไม่ถูกต้อง", gameIndex);
     return;
   }
 
-  const incorrectCount = Math.max(0, totalCount - correctCount);
-  const gameName =
-    gameIndex === 2
-      ? `${GAME_NAMES[gameIndex]} - ${GCS_SUBGAME_NAMES[subIndex] || "Unknown section"}`
-      : GAME_NAMES[gameIndex];
+  if (
+    !Number.isInteger(correctCount) ||
+    !Number.isInteger(totalCount) ||
+    totalCount < 1 ||
+    correctCount < 0 ||
+    correctCount > totalCount
+  ) {
+    console.error("ไม่สามารถบันทึกสถิติ: คะแนนไม่ถูกต้อง", {
+      correctCount,
+      totalCount
+    });
+    return;
+  }
+
+  // ป้องกันการเรียกซ้อนระหว่างที่คำขอก่อนหน้ายังไม่เสร็จ
+  if (statsRequestInProgress) {
+    console.warn("กำลังส่งสถิติรายการก่อนหน้า กรุณารอสักครู่");
+    return;
+  }
+
+  let gameName = GAME_NAMES[gameIndex];
+
+  // แยกชุดย่อยของ GCS
+  if (gameIndex === 2) {
+    if (
+      !Number.isInteger(subIndex) ||
+      subIndex < 0 ||
+      subIndex >= GCS_SUBGAME_NAMES.length
+    ) {
+      console.error("ไม่สามารถบันทึกสถิติ: subIndex ไม่ถูกต้อง", subIndex);
+      return;
+    }
+
+    gameName += " - " + GCS_SUBGAME_NAMES[subIndex];
+  }
+
+  const incorrectCount = totalCount - correctCount;
 
   const sessionId =
-    typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+    typeof crypto !== "undefined" &&
+    typeof crypto.randomUUID === "function"
       ? crypto.randomUUID()
-      : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      : Date.now() + "-" + Math.random().toString(36).slice(2);
 
+  // คงชื่อฟิลด์และรูปแบบข้อมูลให้เข้ากับระบบเดิม
   const payload = {
     game: gameName,
     event: "answer",
@@ -47,6 +106,10 @@ function recordGameSubmission(gameIndex, subIndex, correctCount, totalCount) {
     incorrect: incorrectCount,
     session: sessionId
   };
+
+  console.log("กำลังส่งสถิติเกม:", payload);
+
+  statsRequestInProgress = true;
 
   fetch(STATS_URL, {
     method: "POST",
@@ -56,8 +119,17 @@ function recordGameSubmission(gameIndex, subIndex, correctCount, totalCount) {
     },
     body: JSON.stringify(payload),
     keepalive: true
-  }).catch((error) => {
-    console.error("ส่งสถิติการกดส่งคำตอบไม่สำเร็จ:", error);
-  });
+  })
+    .then(() => {
+      // no-cors ไม่สามารถอ่านผลตอบกลับจาก Apps Script ได้
+      console.log(
+        "ส่งคำขอสถิติแล้ว (ยังไม่ใช่การยืนยันว่าบันทึกลงชีตสำเร็จ)"
+      );
+    })
+    .catch((error) => {
+      console.error("ส่งคำขอสถิติไม่สำเร็จ:", error);
+    })
+    .finally(() => {
+      statsRequestInProgress = false;
+    });
 }
-
