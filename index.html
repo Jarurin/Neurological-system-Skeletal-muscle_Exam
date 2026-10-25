@@ -102,6 +102,7 @@ h1{font-size:clamp(1.35rem,4vw,2rem);margin:7px 0}
 </div>
 </section>
 </main>
+<script src="script.js"></script>
 <script>
 const colors=[
  {line:'#f97316',bg:'#ffedd5',border:'#fdba74',ink:'#9a3412'},
@@ -224,6 +225,10 @@ function drawLines(){
 function check(){
  const g=current(),n=g.items.length,reverseColumns=gameIndex===1||gameIndex===2;
  const correct=g.items.filter(x=>pairs[x[0]]===x[0]).length;
+  // บันทึกสถิติเฉพาะเมื่อผู้เล่นกดปุ่ม "ส่งคำตอบ" และแยกตามเกม
+  if(typeof recordGameSubmission==="function"){
+    recordGameSubmission(gameIndex, subIndex, correct, n);
+  }
  document.querySelectorAll('.match-card').forEach(c=>c.classList.remove('correct','wrong'));
  if(correct===n&&Object.keys(pairs).length===n){
   g.items.forEach(x=>{cardBy('left',x[0])?.classList.add('correct');cardBy('right',x[0])?.classList.add('correct');});
